@@ -1,28 +1,30 @@
 package fr.pchab.AndroidRTC;
 
+import java.util.List;
+
+import org.json.JSONException;
+import org.webrtc.MediaStream;
+import org.webrtc.PeerConnectionFactory;
+import org.webrtc.VideoRenderer;
+
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Window;
 import android.widget.Toast;
-import org.json.JSONException;
-import org.webrtc.MediaStream;
-import org.webrtc.PeerConnectionFactory;
-import org.webrtc.VideoRenderer;
-
-import java.util.List;
 
 public class RTCActivity extends Activity implements WebRtcClient.RTCListener{
-  private final String HOST = "http://54.214.218.3:3000/";
   private final static int VIDEO_CALL_SENT = 666;
   private VideoStreamsView vsv;
   private WebRtcClient client;
   private String callerId;
-
-
+  private String mSocketAddress;
+  private String mPathPrefix;
+  private final static String TAG = RTCActivity.class.getName();
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -34,14 +36,17 @@ public class RTCActivity extends Activity implements WebRtcClient.RTCListener{
     Point displaySize = new Point();
     getWindowManager().getDefaultDisplay().getSize(displaySize);
     vsv = new VideoStreamsView(this, displaySize);
-    client = new WebRtcClient(this, HOST);
+    mPathPrefix  = getResources().getString(R.string.path_prefix);
+    mSocketAddress = "http://" + getResources().getString(R.string.host);
+    mSocketAddress += (":"+getResources().getString(R.string.port));
+    Log.d(TAG,"WebRtcClient socket address: "+mSocketAddress);
+    client = new WebRtcClient(this, mSocketAddress);
 
     final Intent intent = getIntent();
     final String action = intent.getAction();
-
+    Log.d(TAG,"onCreate() "+intent.getAction());
     if (Intent.ACTION_VIEW.equals(action)) {
-      final List<String> segments = intent.getData().getPathSegments();
-      callerId = segments.get(0);
+      callerId = intent.getData().getLastPathSegment();
     }
   }
 
@@ -65,6 +70,7 @@ public class RTCActivity extends Activity implements WebRtcClient.RTCListener{
 
   @Override
   public void onCallReady(String callId) {
+	  Log.d(TAG,"onCallReady() callId ="+(callId == null ? "nil" : callId));
     if(callerId != null) {
       try {
         answer(callerId);
@@ -82,8 +88,10 @@ public class RTCActivity extends Activity implements WebRtcClient.RTCListener{
   }
 
   public void call(String callId) {
+	  String extra = mSocketAddress + mPathPrefix + "/" + callId;
+	  Log.d(TAG,"call() intent extra: "+extra);
     Intent msg = new Intent(Intent.ACTION_SEND);
-    msg.putExtra(Intent.EXTRA_TEXT, HOST + callId);
+    msg.putExtra(Intent.EXTRA_TEXT, extra);
     msg.setType("text/plain");
     startActivityForResult(Intent.createChooser(msg, "Call someone :"), VIDEO_CALL_SENT);
   }
@@ -119,6 +127,7 @@ public class RTCActivity extends Activity implements WebRtcClient.RTCListener{
 
   @Override
   public void onAddRemoteStream(MediaStream remoteStream, int endPoint) {
+	  Log.d(TAG,"onAddRemoteStream() "+remoteStream.label() + " " + endPoint);
     remoteStream.videoTracks.get(0).addRenderer(new VideoRenderer(new VideoCallbacks(vsv, endPoint)));
     vsv.shouldDraw[endPoint] = true;
   }

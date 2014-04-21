@@ -7,7 +7,7 @@
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
     <uses-sdk
-            android:minSdkVersion="8"
+            android:minSdkVersion="13"
             android:targetSdkVersion="18" />
 
     <uses-permission android:name="android.permission.CAMERA" />
@@ -30,7 +30,9 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="http"
-                      android:host="@string/host" />
+                      android:host="@string/host" 
+                      android:port="@string/port"
+                      android:pathPrefix="@string/path_prefix"/>
             </intent-filter>
         </activity>
     </application>
